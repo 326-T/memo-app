@@ -1,0 +1,3 @@
+[workspace]
+members = ["main", "controller", "service", "repository", "model"]
+resolver = "2"
