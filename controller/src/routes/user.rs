@@ -2,7 +2,7 @@ use std::vec;
 
 use axum::{extract::Path, http::StatusCode, routing::get, Json, Router};
 
-use model::dto::user::{UserRequest, UserResponse};
+use crate::dto::user::{UserRequest, UserResponse};
 
 pub fn create_router() -> Router {
     Router::new()
@@ -56,6 +56,7 @@ async fn delete_user(Path(id): Path<i32>) -> StatusCode {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},

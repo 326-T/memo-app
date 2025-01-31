@@ -117,7 +117,7 @@ dependencies = [
  "axum",
  "http-body-util",
  "hyper-util",
- "model",
+ "serde",
  "serde_json",
  "tokio",
  "tower",
@@ -355,14 +355,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys",
-]
-
-[[package]]
-name = "model"
-version = "0.1.0"
-dependencies = [
- "serde",
- "utoipa",
 ]
 
 [[package]]
