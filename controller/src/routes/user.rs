@@ -1,62 +1,78 @@
-use std::vec;
-
-use axum::{extract::Path, http::StatusCode, routing::get, Json, Router};
-
 use crate::dto::user::{UserRequest, UserResponse};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::get,
+    Json, Router,
+};
+use service::service::user::{UserService, UserServiceImpl};
+use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct AppState {
+    user_service: Arc<dyn UserService>,
+}
 
 pub fn create_router() -> Router {
+    let user_service = Arc::new(UserServiceImpl::default());
+
     Router::new()
-        .route("/users", get(get_users).post(create_user))
+        .route("/", get(get_users).post(create_user))
         .route(
-            "/users/{id}",
+            "/{id}",
             get(find_by_id).put(update_user).delete(delete_user),
         )
+        .with_state(AppState { user_service })
 }
 
-async fn get_users() -> Json<Vec<UserResponse>> {
-    Json(vec![
-        UserResponse {
-            id: 1,
-            name: "Alice".to_string(),
-        },
-        UserResponse {
-            id: 2,
-            name: "Bob".to_string(),
-        },
-    ])
+async fn get_users(State(AppState { user_service }): State<AppState>) -> Json<Vec<UserResponse>> {
+    let users = user_service.get_users();
+    let body = users.into_iter().map(|user| user.into()).collect();
+    Json(body)
 }
 
-async fn find_by_id(Path(id): Path<i32>) -> Json<UserResponse> {
+async fn find_by_id(
+    State(AppState { user_service }): State<AppState>,
+    Path(id): Path<i32>,
+) -> Json<UserResponse> {
+    let user = user_service.find_by_id(id);
     Json(UserResponse {
-        id,
-        name: "Alice".to_string(),
+        id: user.id,
+        name: user.name,
     })
 }
 
-async fn create_user(Json(payload): Json<UserRequest>) -> (StatusCode, Json<UserResponse>) {
-    (
-        StatusCode::CREATED,
-        Json(UserResponse {
-            id: 1,
-            name: payload.name.clone(),
-        }),
-    )
+async fn create_user(
+    State(AppState { user_service }): State<AppState>,
+    Json(payload): Json<UserRequest>,
+) -> (StatusCode, Json<UserResponse>) {
+    let user = user_service.create_user(payload.into());
+
+    (StatusCode::CREATED, Json(user.into()))
 }
 
-async fn update_user(Path(id): Path<i32>, Json(payload): Json<UserRequest>) -> Json<UserResponse> {
+async fn update_user(
+    State(AppState { user_service }): State<AppState>,
+    Path(id): Path<i32>,
+    Json(payload): Json<UserRequest>,
+) -> Json<UserResponse> {
+    let user = user_service.update_user(payload.into());
     Json(UserResponse {
-        id,
-        name: payload.name.clone(),
+        id: user.id,
+        name: user.name,
     })
 }
 
-async fn delete_user(Path(id): Path<i32>) -> StatusCode {
+async fn delete_user(
+    State(AppState { user_service }): State<AppState>,
+    Path(id): Path<i32>,
+) -> StatusCode {
+    user_service.delete_user(id);
     StatusCode::NO_CONTENT
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
@@ -71,12 +87,7 @@ mod tests {
         let app = super::create_router();
         // when
         let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/users")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
             .await
             .unwrap();
         // then
@@ -92,12 +103,7 @@ mod tests {
         let app = super::create_router();
         // when
         let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/users/1")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri("/1").body(Body::empty()).unwrap())
             .await
             .unwrap();
         // then
@@ -114,7 +120,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/users")
+                    .uri("/")
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, "application/json")
                     .body(Body::from(json!({"name": "Alice"}).to_string()))
@@ -136,7 +142,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/users/1")
+                    .uri("/1")
                     .method(http::Method::PUT)
                     .header(http::header::CONTENT_TYPE, "application/json")
                     .body(Body::from(json!({"name": "Alice"}).to_string()))
@@ -158,7 +164,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/users/1")
+                    .uri("/1")
                     .method(http::Method::DELETE)
                     .body(Body::empty())
                     .unwrap(),

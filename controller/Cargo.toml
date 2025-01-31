@@ -7,6 +7,7 @@ edition = "2021"
 axum = "0.8.1"
 utoipa = "5.3.1"
 serde = "1.0.217"
+service = { path = "../service" }
 
 [dev-dependencies]
 http-body-util = "0.1.2"
