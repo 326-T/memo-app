@@ -11,11 +11,11 @@ cargo build
 ## Run
 
 ```bash
-cargo run -p main
+cargo run -p controller
 ```
 
 ## Hot Reload
 
 ```bash
-cargo watch -x run -p main
+cargo watch -x run -p controller
 ```
