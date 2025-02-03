@@ -6,7 +6,7 @@ use std::sync::Arc;
 #[async_trait::async_trait]
 pub trait UserService: Send + Sync {
     async fn get_users(&self) -> Vec<User>;
-    async fn find_by_id(&self, id: i32) -> User;
+    async fn find_by_id(&self, id: i32) -> Option<User>;
     async fn create_user(&self, user: User) -> User;
     async fn update_user(&self, user: User) -> User;
     async fn delete_user(&self, id: i32);
@@ -30,13 +30,13 @@ impl UserService for UserServiceImpl {
             .get_users()
             .await
             .into_iter()
-            .map(|user| User::from(user))
+            .map(User::from)
             .collect()
     }
 
-    async fn find_by_id(&self, id: i32) -> User {
+    async fn find_by_id(&self, id: i32) -> Option<User> {
         let entity = self.user_repository.find_by_id(id).await;
-        User::from(entity.unwrap())
+        entity.map(User::from)
     }
 
     async fn create_user(&self, user: User) -> User {
@@ -96,7 +96,7 @@ mod tests {
         let user_service = UserServiceImpl::new(Arc::new(mock_user_repository));
         let id = 1;
         // when
-        let user = user_service.find_by_id(id).await;
+        let user = user_service.find_by_id(id).await.unwrap();
         // then
         assert_eq!(user.id, id);
     }

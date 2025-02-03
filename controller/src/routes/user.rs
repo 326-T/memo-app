@@ -28,10 +28,7 @@ async fn find_by_id(
     Path(id): Path<i32>,
 ) -> Json<UserResponse> {
     let user = user_service.find_by_id(id).await;
-    Json(UserResponse {
-        id: user.id,
-        name: user.name,
-    })
+    Json(user.unwrap().into())
 }
 
 async fn create_user(
@@ -51,10 +48,7 @@ async fn update_user(
     let mut user: User = payload.into();
     user.id = id;
     let user = user_service.update_user(user).await;
-    Json(UserResponse {
-        id: user.id,
-        name: user.name,
-    })
+    Json(user.into())
 }
 
 async fn delete_user(
@@ -113,9 +107,11 @@ mod tests {
     async fn test_find_by_id() {
         // given
         let mut mock_user_service = MockUserService::new();
-        mock_user_service.expect_find_by_id().returning(|id| User {
-            id,
-            name: "Alice".to_string(),
+        mock_user_service.expect_find_by_id().returning(|id| {
+            Some(User {
+                id,
+                name: "Alice".to_string(),
+            })
         });
         let app = sub_router().with_state(AppState {
             user_service: Arc::new(mock_user_service),
