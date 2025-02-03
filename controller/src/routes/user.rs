@@ -18,7 +18,7 @@ pub fn sub_router() -> Router<AppState> {
 }
 
 async fn get_users(State(AppState { user_service }): State<AppState>) -> Json<Vec<UserResponse>> {
-    let users = user_service.get_users();
+    let users = user_service.get_users().await;
     let body = users.into_iter().map(|user| user.into()).collect();
     Json(body)
 }
@@ -27,7 +27,7 @@ async fn find_by_id(
     State(AppState { user_service }): State<AppState>,
     Path(id): Path<i32>,
 ) -> Json<UserResponse> {
-    let user = user_service.find_by_id(id);
+    let user = user_service.find_by_id(id).await;
     Json(UserResponse {
         id: user.id,
         name: user.name,
@@ -38,7 +38,7 @@ async fn create_user(
     State(AppState { user_service }): State<AppState>,
     Json(payload): Json<UserRequest>,
 ) -> (StatusCode, Json<UserResponse>) {
-    let user = user_service.create_user(payload.into());
+    let user = user_service.create_user(payload.into()).await;
 
     (StatusCode::CREATED, Json(user.into()))
 }
@@ -50,7 +50,7 @@ async fn update_user(
 ) -> Json<UserResponse> {
     let mut user: User = payload.into();
     user.id = id;
-    let user = user_service.update_user(user);
+    let user = user_service.update_user(user).await;
     Json(UserResponse {
         id: user.id,
         name: user.name,
@@ -61,7 +61,7 @@ async fn delete_user(
     State(AppState { user_service }): State<AppState>,
     Path(id): Path<i32>,
 ) -> StatusCode {
-    user_service.delete_user(id);
+    user_service.delete_user(id).await;
     StatusCode::NO_CONTENT
 }
 

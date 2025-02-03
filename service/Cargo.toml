@@ -5,5 +5,8 @@ edition = "2021"
 
 [dependencies]
 mockall = "0.13.1"
+async-trait = "0.1.86"
+repository = { path = "../repository" }
 
 [dev-dependencies]
+tokio = { version = "1.43.0", features = ["full"] }

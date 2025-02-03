@@ -13,7 +13,7 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .nest("/users", sub_router())
-        .with_state(state());
+        .with_state(state().await);
 
     // run it
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")

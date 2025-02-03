@@ -315,6 +315,7 @@ dependencies = [
  "http-body-util",
  "hyper-util",
  "mockall",
+ "repository",
  "serde",
  "serde_json",
  "service",
@@ -1950,7 +1951,10 @@ dependencies = [
 name = "service"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "mockall",
+ "repository",
+ "tokio",
 ]
 
 [[package]]
