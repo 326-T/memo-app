@@ -19,3 +19,9 @@ cargo run -p controller
 ```bash
 cargo watch -x run -p controller
 ```
+
+## Test
+
+```bash
+cargo test
+```
