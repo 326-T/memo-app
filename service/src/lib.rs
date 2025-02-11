@@ -1,2 +1,6 @@
-pub mod dto;
-pub mod service;
+pub mod dto {
+    pub mod user;
+}
+pub mod service {
+    pub mod user;
+}

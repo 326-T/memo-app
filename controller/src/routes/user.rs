@@ -18,7 +18,7 @@ pub fn sub_router() -> Router<AppState> {
 }
 
 async fn get_users(State(AppState { user_service }): State<AppState>) -> Json<Vec<UserResponse>> {
-    let users = user_service.get_users().await;
+    let users = user_service.get_users().await.unwrap();
     let body = users.into_iter().map(|user| user.into()).collect();
     Json(body)
 }
@@ -27,7 +27,7 @@ async fn find_by_id(
     State(AppState { user_service }): State<AppState>,
     Path(id): Path<i32>,
 ) -> Json<UserResponse> {
-    let user = user_service.find_by_id(id).await;
+    let user = user_service.find_by_id(id).await.unwrap();
     Json(user.unwrap().into())
 }
 
@@ -35,7 +35,7 @@ async fn create_user(
     State(AppState { user_service }): State<AppState>,
     Json(payload): Json<UserRequest>,
 ) -> (StatusCode, Json<UserResponse>) {
-    let user = user_service.create_user(payload.into()).await;
+    let user = user_service.create_user(payload.into()).await.unwrap();
 
     (StatusCode::CREATED, Json(user.into()))
 }
@@ -47,7 +47,7 @@ async fn update_user(
 ) -> Json<UserResponse> {
     let mut user: User = payload.into();
     user.id = id;
-    let user = user_service.update_user(user).await;
+    let user = user_service.update_user(user).await.unwrap();
     Json(user.into())
 }
 
@@ -55,7 +55,7 @@ async fn delete_user(
     State(AppState { user_service }): State<AppState>,
     Path(id): Path<i32>,
 ) -> StatusCode {
-    user_service.delete_user(id).await;
+    user_service.delete_user(id).await.unwrap();
     StatusCode::NO_CONTENT
 }
 
@@ -77,16 +77,36 @@ mod tests {
         // given
         let mut mock_user_service = MockUserService::new();
         mock_user_service.expect_get_users().returning(|| {
-            vec![
+            Ok(vec![
                 User {
                     id: 1,
                     name: "Alice".to_string(),
+                    created_at: chrono::NaiveDateTime::parse_from_str(
+                        "2021-01-01 00:00:00",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    .unwrap(),
+                    updated_at: chrono::NaiveDateTime::parse_from_str(
+                        "2021-01-01 00:00:00",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    .unwrap(),
                 },
                 User {
                     id: 2,
                     name: "Bob".to_string(),
+                    created_at: chrono::NaiveDateTime::parse_from_str(
+                        "2021-01-01 00:00:00",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    .unwrap(),
+                    updated_at: chrono::NaiveDateTime::parse_from_str(
+                        "2021-01-01 00:00:00",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    .unwrap(),
                 },
-            ]
+            ])
         });
         let app = sub_router().with_state(AppState {
             user_service: Arc::new(mock_user_service),
@@ -108,10 +128,20 @@ mod tests {
         // given
         let mut mock_user_service = MockUserService::new();
         mock_user_service.expect_find_by_id().returning(|id| {
-            Some(User {
+            Ok(Some(User {
                 id,
                 name: "Alice".to_string(),
-            })
+                created_at: chrono::NaiveDateTime::parse_from_str(
+                    "2021-01-01 00:00:00",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap(),
+                updated_at: chrono::NaiveDateTime::parse_from_str(
+                    "2021-01-01 00:00:00",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap(),
+            }))
         });
         let app = sub_router().with_state(AppState {
             user_service: Arc::new(mock_user_service),
@@ -131,12 +161,22 @@ mod tests {
     async fn test_create_user() {
         // given
         let mut mock_user_service = MockUserService::new();
-        mock_user_service
-            .expect_create_user()
-            .returning(|user| User {
+        mock_user_service.expect_create_user().returning(|user| {
+            Ok(User {
                 id: 2,
                 name: user.name.clone(),
-            });
+                created_at: chrono::NaiveDateTime::parse_from_str(
+                    "2021-01-01 00:00:00",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap(),
+                updated_at: chrono::NaiveDateTime::parse_from_str(
+                    "2021-01-01 00:00:00",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap(),
+            })
+        });
         let app = sub_router().with_state(AppState {
             user_service: Arc::new(mock_user_service),
         });
@@ -162,12 +202,22 @@ mod tests {
     async fn test_update_user() {
         // given
         let mut mock_user_service = MockUserService::new();
-        mock_user_service
-            .expect_update_user()
-            .returning(|user| User {
+        mock_user_service.expect_update_user().returning(|user| {
+            Ok(User {
                 id: user.id,
                 name: user.name.clone(),
-            });
+                created_at: chrono::NaiveDateTime::parse_from_str(
+                    "2021-01-01 00:00:00",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap(),
+                updated_at: chrono::NaiveDateTime::parse_from_str(
+                    "2021-01-01 00:00:00",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap(),
+            })
+        });
         let app = sub_router().with_state(AppState {
             user_service: Arc::new(mock_user_service),
         });
@@ -193,7 +243,7 @@ mod tests {
     async fn test_delete_user() {
         // given
         let mut mock_user_service = MockUserService::new();
-        mock_user_service.expect_delete_user().returning(|_| ());
+        mock_user_service.expect_delete_user().returning(|_| Ok(()));
         let app = sub_router().with_state(AppState {
             user_service: Arc::new(mock_user_service),
         });

@@ -7,6 +7,8 @@ use utoipa::ToSchema;
 pub struct UserResponse {
     pub id: i32,
     pub name: String,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -20,6 +22,8 @@ impl From<User> for UserResponse {
         Self {
             id: user.id,
             name: user.name,
+            created_at: user.created_at.to_string(),
+            updated_at: user.updated_at.to_string(),
         }
     }
 }
@@ -29,6 +33,8 @@ impl Into<User> for UserRequest {
         User {
             id: 0,
             name: self.name,
+            created_at: chrono::Utc::now().naive_utc(),
+            updated_at: chrono::Utc::now().naive_utc(),
         }
     }
 }

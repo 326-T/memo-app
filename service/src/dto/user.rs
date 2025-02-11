@@ -4,6 +4,8 @@ use repository::entity::user::UserEntity;
 pub struct User {
     pub id: i32,
     pub name: String,
+    pub created_at: chrono::NaiveDateTime,
+    pub updated_at: chrono::NaiveDateTime,
 }
 
 impl From<UserEntity> for User {
@@ -11,6 +13,8 @@ impl From<UserEntity> for User {
         Self {
             id: entity.id,
             name: entity.name,
+            created_at: entity.created_at,
+            updated_at: entity.updated_at,
         }
     }
 }
@@ -20,6 +24,8 @@ impl From<User> for UserEntity {
         Self {
             id: user.id,
             name: user.name,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
         }
     }
 }
