@@ -26,10 +26,6 @@ impl PostgresContainer {
                 .await
                 .expect("Failed to connect to Postgres"),
         );
-        sqlx::migrate!("../migrations/schema")
-            .run(pool.as_ref())
-            .await
-            .expect("Failed to run migrations");
         sqlx::migrate!("../migrations/test")
             .run(pool.as_ref())
             .await

@@ -42,20 +42,30 @@ impl UserRepository for UserRepositoryImpl {
     }
 
     async fn create_user(&self, user: UserEntity) -> Result<UserEntity, AppError> {
-        let entity =
-            sqlx::query_as::<_, UserEntity>("INSERT INTO users (name) VALUES ($1) RETURNING *;")
-                .bind(&user.name)
-                .fetch_one(&*self.db)
-                .await?;
+        let entity = sqlx::query_as::<_, UserEntity>(
+            r#"
+            INSERT INTO users (name)
+            VALUES ($1)
+            RETURNING *;
+            "#,
+        )
+        .bind(&user.name)
+        .fetch_one(&*self.db)
+        .await?;
         Ok(entity)
     }
 
     async fn update_user(&self, user: UserEntity) -> Result<UserEntity, AppError> {
         let entity = sqlx::query_as::<_, UserEntity>(
-            "UPDATE users SET name = $1 WHERE id = $2 RETURNING *;",
+            r#"
+            UPDATE users
+            SET name = $2, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING *;
+            "#,
         )
+        .bind(&user.id)
         .bind(&user.name)
-        .bind(user.id)
         .fetch_one(&*self.db)
         .await?;
         Ok(entity)
@@ -84,9 +94,31 @@ mod tests {
         // when
         let users = repository.get_users().await.unwrap();
         // then
-        assert_eq!(users.len(), 1);
+        assert_eq!(users.len(), 2);
         assert_eq!(users[0].id, 1);
         assert_eq!(users[0].name, "Alice");
+        assert_eq!(
+            users[0].created_at,
+            chrono::NaiveDateTime::parse_from_str("2025-02-10 00:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+        );
+        assert_eq!(
+            users[0].updated_at,
+            chrono::NaiveDateTime::parse_from_str("2025-02-10 12:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+        );
+        assert_eq!(users[1].id, 2);
+        assert_eq!(users[1].name, "Bob");
+        assert_eq!(
+            users[1].created_at,
+            chrono::NaiveDateTime::parse_from_str("2025-02-11 00:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+        );
+        assert_eq!(
+            users[1].updated_at,
+            chrono::NaiveDateTime::parse_from_str("2025-02-11 12:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -101,6 +133,16 @@ mod tests {
         let user = user.unwrap();
         assert_eq!(user.id, 1);
         assert_eq!(user.name, "Alice");
+        assert_eq!(
+            user.created_at,
+            chrono::NaiveDateTime::parse_from_str("2025-02-10 00:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+        );
+        assert_eq!(
+            user.updated_at,
+            chrono::NaiveDateTime::parse_from_str("2025-02-10 12:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -108,19 +150,22 @@ mod tests {
         // given
         let container = PostgresContainer::new().await;
         let repository = UserRepositoryImpl::new(container.pool());
+        let current_time = chrono::Utc::now().naive_utc();
         // when
         let user = repository
             .create_user(UserEntity {
-                id: 2,
-                name: "Bob".to_string(),
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: chrono::Utc::now().naive_utc(),
+                id: 0,
+                name: "Kate".to_string(),
+                created_at: current_time,
+                updated_at: current_time,
             })
             .await
             .unwrap();
         // then
-        assert_eq!(user.id, 2);
-        assert_eq!(user.name, "Bob");
+        assert_eq!(user.id, 3);
+        assert_eq!(user.name, "Kate");
+        assert!(user.created_at > current_time);
+        assert!(user.updated_at > current_time);
     }
 
     #[tokio::test]
@@ -128,19 +173,18 @@ mod tests {
         // given
         let container = PostgresContainer::new().await;
         let repository = UserRepositoryImpl::new(container.pool());
+        let mut previous = repository.find_by_id(1).await.unwrap().unwrap();
+        previous.name = "Charlie".to_string();
+        let previous_created_at = previous.created_at;
+        let previous_updated_at = previous.updated_at;
+
         // when
-        let user = repository
-            .update_user(UserEntity {
-                id: 1,
-                name: "Charlie".to_string(),
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: chrono::Utc::now().naive_utc(),
-            })
-            .await
-            .unwrap();
+        let user = repository.update_user(previous).await.unwrap();
         // then
         assert_eq!(user.id, 1);
         assert_eq!(user.name, "Charlie");
+        assert_eq!(user.created_at, previous_created_at);
+        assert!(user.updated_at > previous_updated_at);
     }
 
     #[tokio::test]
@@ -151,6 +195,8 @@ mod tests {
         // when
         let _ = repository.delete_user(1).await;
         // then
+        let user = repository.find_by_id(1).await.unwrap();
+        assert!(user.is_none());
         // no assertion
     }
 }

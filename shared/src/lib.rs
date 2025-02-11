@@ -12,7 +12,8 @@ pub enum AppError {
 }
 
 impl From<sqlx::Error> for AppError {
-    fn from(_: sqlx::Error) -> Self {
+    fn from(err: sqlx::Error) -> Self {
+        print!("{:?}", err);
         AppError::InternalServerError
     }
 }
